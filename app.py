@@ -4,6 +4,7 @@ import streamlit as st
 
 df = pd.read_csv("student.csv")
 
+
 st.set_page_config(
   page_title="Dashboard com Streamlit",
   page_icon="📊",
@@ -11,7 +12,7 @@ st.set_page_config(
 
 st.sidebar.title("Navegação")
 pagina = st.sidebar.selectbox("Escolha a página", 
-                              ["Introdução", "Horas estudadas X Nota", "Escolaridade dos pais X Nota", "Motivação X Nota", "Análise 4", "Análise 5", "Análise 6"])
+                              ["Introdução", "Horas estudadas X Nota", "Escolaridade dos pais X Nota", "Motivação X Nota", "Distribuição das Notas do Exame", "Impacto das Atividades Extracurriculares", "Correlação entre Fatores"])
 
 if pagina == "Introdução":
     st.title("Bem-vindo ao Dashboard de Desempenho Estudantil")
@@ -126,14 +127,77 @@ elif pagina == "Motivação X Nota":
 
     st.plotly_chart(fig, use_container_width=True)
 
-elif pagina == "Análise 4":
-    st.title("Página de Análise 4")
-    # gráfico 4
+elif pagina == "Distribuição das Notas do Exame":
+    st.title("Distribuição das Notas do Exame")
+    st.subheader("Histograma da Pontuação dos Alunos")
+    st.write("Este histograma mostra a frequência das notas dos exames. Ele permite visualizar rapidamente onde a maioria das notas se concentra, ajudando a entender o desempenho geral da turma. Use o slider abaixo para ver como as horas de sono influenciam na distribuição das notas.")
 
-elif pagina == "Análise 5":
-    st.title("Página de Análise 5")
-    # gráfico 5
+    horas_sono_filtro = st.slider(
+        "Filtrar alunos por horas de sono:",
+        min_value=int(df['Sleep_Hours'].min()),
+        max_value=int(df['Sleep_Hours'].max()),
+        value=(int(df['Sleep_Hours'].min()), int(df['Sleep_Hours'].max()))
+    )
 
-elif pagina == "Análise 6":
-    st.title("Página de Análise 6")
-    # gráfico 6
+    df_filtrado = df[
+        (df['Sleep_Hours'] >= horas_sono_filtro[0]) &
+        (df['Sleep_Hours'] <= horas_sono_filtro[1])
+    ]
+
+    fig = px.histogram(
+        df_filtrado,
+        x="Exam_Score",
+        nbins=20,
+        title="Distribuição das Notas do Exame",
+        labels={'Exam_Score': 'Nota do Exame'}
+    )
+
+    fig.update_layout(
+        yaxis_title="Número de Alunos"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+elif pagina == "Impacto das Atividades Extracurriculares":
+    st.title("Impacto das Atividades Extracurriculares")
+    st.subheader("Proporção e Desempenho Médio")
+    st.write("Este gráfico de rosca analisa duas coisas: a proporção de alunos que participam de atividades extracurriculares e a nota média de cada um desses grupos. O tamanho de cada fatia representa a nota média, permitindo uma comparação direta do desempenho.")
+
+    media_por_atividade = df.groupby('Extracurricular_Activities')['Exam_Score'].mean().reset_index()
+
+    fig = px.pie(
+        media_por_atividade,
+        names='Extracurricular_Activities',
+        values='Exam_Score',
+        title='Nota Média por Participação em Atividades Extracurriculares',
+        hole=.4,
+        color_discrete_sequence=px.colors.sequential.RdBu
+    )
+
+    fig.update_traces(
+        textinfo='percent+label',
+        texttemplate='%{label}: <br>Média: %{value:.1f}',
+        hovertemplate='<b>%{label}</b><br>Nota Média: %{value:.2f}<extra></extra>'
+    )
+
+
+    st.plotly_chart(fig, use_container_width=True)
+
+elif pagina == "Correlação entre Fatores":
+    st.title("Análise 6: Correlação entre Fatores")
+    st.subheader("Mapa de Calor das Variáveis Numéricas")
+    st.write("Este mapa de calor exibe a correlação entre as variáveis numéricas do dataset. Cores mais quentes (próximas do vermelho) indicam uma correlação positiva forte, enquanto cores mais frias (próximas do azul) indicam uma correlação negativa forte. A diagonal principal sempre será 1, pois uma variável tem correlação perfeita consigo mesma.")
+
+  
+    df_numerico = df.select_dtypes(include=['int64', 'float64'])
+    matriz_corr = df_numerico.corr()
+
+    fig = px.imshow(
+        matriz_corr,
+        text_auto=True,
+        aspect="auto",
+        color_continuous_scale='RdBu_r',
+        title="Mapa de Calor de Correlação"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
